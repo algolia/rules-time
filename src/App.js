@@ -3,7 +3,6 @@ import algoliasearch from 'algoliasearch';
 import './App.css';
 import moment from 'moment';
 
-
 function App() {
   const [appID, setAppID] = useState(localStorage.getItem('rules_app_id') || "appID");
   const [API_KEY, setAPI_KEY] = useState(localStorage.getItem('rules_api_key') || "API_KEY");
