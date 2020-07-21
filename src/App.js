@@ -15,47 +15,48 @@ function App() {
 
   function handleChange(e) {
     if (e.target.value === "") {
-      setRule("")
-      setRules([])
+      setRule("");
+      setRules([]);
     } else {
-      setRule("")
+      setRule("");
     }
     const searchClient = algoliasearch(appID, API_KEY);
     const index = searchClient.initIndex(indexName);
     index.searchRules(e.target.value)
     .then(({ hits }) => {
-      setRules(hits)
+      setRules(hits);
     })
     .catch(err => {
       alert(err.message);
-    })
+    });
   }
   
   function handleSubmit(e) {
     e.preventDefault();
     const searchClient = algoliasearch(appID, API_KEY);
     const index = searchClient.initIndex(indexName);
-    const tempRule = {
-      objectID: rule.objectID,
-      condition: rule.condition,
-      consequence: rule.consequence,
-      description: rule.description
-    }
-    if (from && until) tempRule.validity = [
-      {
-        from: moment(from).unix(),
-        until: moment(until).unix()
+    if (e.target.name === "time") {
+      const tempRule = {
+        objectID: rule.objectID,
+        condition: rule.condition,
+        consequence: rule.consequence,
+        description: rule.description
       }
-    ]
-    index.saveRule(tempRule)
-      .then((res) => {
-        (tempRule.validity 
-          ? alert(`Saving rule ${rule.objectID} valid from ${moment(from).local().format('llll')} until ${moment(until).local().format('llll')}`) 
-          : alert(`Saving rule ${rule.objectID} as always on rule`) 
-        ) 
-      })
-      .catch(err => alert(err.message))
-    
+      if (from && until) tempRule.validity = [
+        {
+          from: moment(from).unix(),
+          until: moment(until).unix()
+        }
+      ];
+      index.saveRule(tempRule)
+        .then((res) => {
+          (tempRule.validity
+            ? alert(`Saving rule ${rule.objectID} valid from ${moment(from).local().format('llll')} until ${moment(until).local().format('llll')}`)
+            : alert(`Saving rule ${rule.objectID} as always on rule`)
+          )
+        })
+        .catch(err => alert(err.message));
+    }
   }
   function handleSelection(rule) {
     setRule(rule);
@@ -67,7 +68,7 @@ function App() {
 
   function _renderValidity(rule) {
     if (rule.validity) {
-      return (<div><div><b>Active From:</b> {moment.unix(rule.validity[0].from).format('llll')}</div><div> <b>Until:</b> {moment.unix(rule.validity[0].until).format('llll')}</div></div>)
+      return (<div><div><b>Active From:</b> {moment.unix(rule.validity[0].from).format('llll')}</div><div> <b>Until:</b> {moment.unix(rule.validity[0].until).format('llll')}</div></div>);
     } else {
       return ("");
     }
@@ -121,13 +122,13 @@ function App() {
               {/* <input type="submit" name="query" value="Look for Rule" /> */}
             </form>
             {_renderRules()}
-            {(rule ? 
-            <RenderTime 
+            {(rule 
+            ? <RenderTime 
                 setFrom={setFrom.bind(this)}
                 setUntil={setUntil.bind(this)}
                 handleSubmit={handleSubmit.bind(this)}
-            /> : 
-            "")}
+            /> 
+            : "")}
             </div>
           </div>
       </div>
