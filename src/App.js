@@ -1,109 +1,71 @@
-import React, { Component } from 'react';
+import React, { useState } from 'react';
 import algoliasearch from 'algoliasearch';
 import './App.css';
 import moment from 'moment';
-import {appID, API_KEY, indexName} from './config.js'
 
-class App extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      appID: localStorage.getItem('rules_app_id') || appID || "appID",
-      API_KEY: localStorage.getItem('rules_api_key') || API_KEY || "API_KEY",
-      indexName: localStorage.getItem('rules_index_name') || indexName || "atis-prods",
-      query: "",
-      rules: [],
-      rule: ""
-    };
-    this.handleChange = this.handleChange.bind(this);
-    this.handleSubmit = this.handleSubmit.bind(this);
-    this.setRule = this.setRule.bind(this);
-  }
 
-  handleChange(e) {
-    switch (e.target.name) {
-      case "appID":
-        this.setState({ appID: e.target.value });
-        break;
-      case "API_KEY":
-        this.setState({ API_KEY: e.target.value });
-        break;
-      case "indexName":
-        this.setState({ indexName: e.target.value });
-        break;
-      case "query":
-        if (e.target.value === "") {
-          this.setState({ query: e.target.value, rule: "", rules: [] });
-        } else {
-          this.setState({ query: e.target.value, rule: "" });
-        }
-        const searchClient = algoliasearch(this.state.appID, this.state.API_KEY);
-        const index = searchClient.initIndex(this.state.indexName);
-        index.searchRules(this.state.query)
-          .then(({ hits }) => {
-            this.setState({ rules: hits });
-          })
-          .catch(err => {
-            alert(err.message);
-          })
-        break;
-      case "from":
-        this.setState({ from: e.target.value });
-        break;
-      case "until":
-        this.setState({ until: e.target.value });
-        break;
-      default:
-        this.setState({ query: e.target.value });
-        break;
+function App() {
+  const [appID, setAppID] = useState(localStorage.getItem('rules_app_id') || "appID");
+  const [API_KEY, setAPI_KEY] = useState(localStorage.getItem('rules_api_key') || "API_KEY");
+  const [indexName, setIndexName] = useState(localStorage.getItem('rules_index_name') || "products_staging");
+  const [rules, setRules] = useState([]);
+  const [rule, setRule] = useState("");
+  const [from, setFrom] = useState("");
+  const [until, setUntil] = useState("");
+
+  function handleChange(e) {
+    if (e.target.value === "") {
+      setRule("")
+      setRules([])
+    } else {
+      setRule("")
     }
-  }
-   
-  setRule(rule) {
-    this.setState({ rule: rule, rules: [rule] });
-    localStorage.setItem('rules_app_id', this.state.appID)
-    localStorage.setItem('rules_api_key', this.state.API_KEY)
-    localStorage.setItem('rules_index_name', this.state.indexName)
+    const searchClient = algoliasearch(appID, API_KEY);
+    const index = searchClient.initIndex(indexName);
+    index.searchRules(e.target.value)
+    .then(({ hits }) => {
+      setRules(hits)
+    })
+    .catch(err => {
+      alert(err.message);
+    })
   }
   
-  handleSubmit(e) {
+  function handleSubmit(e) {
     e.preventDefault();
-    const searchClient = algoliasearch(this.state.appID, this.state.API_KEY);
-    const index = searchClient.initIndex(this.state.indexName);
-    if (e.target.name === "query") {
-      index.searchRules(this.state.query)
-        .then(({ hits }) => {
-          this.setState({ rules: hits });
-        })
-        .catch(err => alert(err.message));
+    const searchClient = algoliasearch(appID, API_KEY);
+    const index = searchClient.initIndex(indexName);
+    const tempRule = {
+      objectID: rule.objectID,
+      condition: rule.condition,
+      consequence: rule.consequence,
+      description: rule.description
     }
-    if (e.target.name === "time") {
-      const rule = {
-        objectID: this.state.rule.objectID,
-        condition: this.state.rule.condition,
-        consequence: this.state.rule.consequence,
-        validity: [
-          {
-            from: moment(this.state.from).unix(),
-            until: moment(this.state.until).unix()
-          }
-        ],
-        description: this.state.rule.description,
+    if (from && until) tempRule.validity = [
+      {
+        from: moment(from).unix(),
+        until: moment(until).unix()
       }
-      index.saveRule(rule)
-        .then((res) => {
-          alert(`Saving rule ${rule.objectID} valid from ${moment(this.state.from).local().format('llll')} until ${moment(this.state.until).local().format('llll')}`)
-        })
-        .catch(err => alert(err.message))
-      // alert(`Saving rule ${rule.objectID} valid from ${moment(this.state.from).local().format('llll')} until ${moment(this.state.until).local().format('llll')}`)
-      // index.saveRule(rule).wait()
-      //   .then((res) => {
-      //     alert(`Completed Saving rule ${rule.objectID} valid from ${moment(this.state.from).local().format('llll')} until ${moment(this.state.until).local().format('llll')}`)
-      //   })
-      //   .catch(err => alert(err.message))
-    }
+    ]
+    index.saveRule(tempRule)
+      .then((res) => {
+        (tempRule.validity 
+          ? alert(`Saving rule ${rule.objectID} valid from ${moment(from).local().format('llll')} until ${moment(until).local().format('llll')}`) 
+          : alert(`Saving rule ${rule.objectID} as always on rule`) 
+        ) 
+      })
+      .catch(err => alert(err.message))
+    
   }
-  _renderValidity(rule) {
+  function handleSelection(rule) {
+    setRule(rule);
+    setRules([rule]);
+    localStorage.setItem('rules_app_id', appID);
+    localStorage.setItem('rules_api_key', API_KEY);
+    localStorage.setItem('rules_index_name', indexName);
+  }
+
+  function _renderValidity(rule) {
     if (rule.validity) {
       return (<div><div><b>Active From:</b> {moment.unix(rule.validity[0].from).format('llll')}</div><div> <b>Until:</b> {moment.unix(rule.validity[0].until).format('llll')}</div></div>)
     } else {
@@ -111,87 +73,85 @@ class App extends Component {
     }
   }
   
-  _renderRules() {
-    return this.state.rules.map((rule, index) => (
-      <button className='rule-button' key={index} onClick={() => this.setRule(rule)}>
+  function _renderRules() {
+    return rules.map((rule, index) => (
+      <button className='rule-button' name="rule" key={index} onClick={() => handleSelection(rule)}>
         <div>
           <b>objectID:</b> {rule.objectID}
         </div>
         <div>
           <b>Description:</b> {rule.description || 0}
         </div>
-        {this._renderValidity(rule)}
+        {_renderValidity(rule)}
         <div>
           <b>Last Updated:</b> {moment.unix(rule._metadata.lastUpdate).format('llll') || 0}
         </div>
       </button>
     ))
   }
-
-  render() {
-    return (
-      <div>
-        <header className="header">
-          <h1 className="header-title">
-            <a href="/">rules-time</a>
-          </h1>
-          <div className="input-container">
-            AppID:
-            <input type="text" name='appID' placeholder={this.state.appID} onChange={this.handleChange} />
-          </div>
-          <div className="input-container">
-            API_KEY:
-            <input type="text" name='API_KEY' placeholder={this.state.API_KEY} onChange={this.handleChange} />
-          </div>
-          <div className="input-container">
-            indexName:
-            <input type="text" name='indexName' placeholder={this.state.indexName} onChange={this.handleChange} />
-          </div>
-        </header>
-
-        <div className="container">
-            <div className="search-panel">
-              <div className="search-panel__results">
-              <form name="query" onSubmit={this.handleSubmit}>
-                <label>
-                  <b>Search for Rule:</b>
-                  <input type="text" name="query" placeholder="Search for contexts, descriptions, or strategies" onChange={this.handleChange} />
-                </label>
-                {/* <input type="submit" name="query" value="Look for Rule" /> */}
-              </form>
-              {this._renderRules()}
-              {(this.state.rule ? 
-              <RenderTime 
-                  handleChange={this.handleChange}
-                  handleSubmit={this.handleSubmit}
-              /> : 
-              "")}
-              </div>
-            </div>
-        </div>
-      </div>
-    );
-  }
-}
-
-const RenderTime = (props) => {
+  
   return (
     <div>
-      <form name="time" onSubmit={props.handleSubmit}>
+      <header className="header">
+        <h1 className="header-title">
+          <a href="/">rules-time</a>
+        </h1>
+        <div className="input-container">
+          AppID:
+          <input type="text" name='appID' placeholder={appID} onChange={e => setAppID(e.target.value)} />
+        </div>
+        <div className="input-container">
+          WRITE or ADMIN API_KEY:
+          <input type="text" name='API_KEY' placeholder={API_KEY} onChange={e => setAPI_KEY(e.target.value)} />
+        </div>
+        <div className="input-container">
+          indexName:
+          <input type="text" name='indexName' placeholder={indexName} onChange={e=> setIndexName(e.target.value)} />
+        </div>
+      </header>
+
+      <div className="container">
+          <div className="search-panel">
+            <div className="search-panel__results">
+            <form name="query" onSubmit={handleSubmit}>
+              <label>
+                <b>Search for Rule:</b>
+                <input type="text" name="query" placeholder="Search for contexts, descriptions, or strategies" onChange={handleChange} />
+              </label>
+              {/* <input type="submit" name="query" value="Look for Rule" /> */}
+            </form>
+            {_renderRules()}
+            {(rule ? 
+            <RenderTime 
+                setFrom={setFrom.bind(this)}
+                setUntil={setUntil.bind(this)}
+                handleSubmit={handleSubmit.bind(this)}
+            /> : 
+            "")}
+            </div>
+          </div>
+      </div>
+    </div>
+  );
+}
+
+const RenderTime = ({handleSubmit, setFrom, setUntil}) => {
+  return (
+    <div>
+      <form name="time" onSubmit={handleSubmit}>
         <div>
-          <b>Set Active Time</b>
+          <b>Set Active Time (Leave blank to set permanent)</b>
         </div>
         <label>
-          From: <input type="text" name="from" placeholder="07-25-2020 08:00 PDT" onChange={props.handleChange} />
+          From: <input type="text" name="from" placeholder="07-25-2020 08:00 PDT" onChange={e => setFrom(e.target.value)} />
         </label>
         <label>
-          Until: <input type="text" name="until" placeholder="08-20-2020 15:00 PDT" onChange={props.handleChange} />
+          Until: <input type="text" name="until" placeholder="08-20-2020 15:00 PDT" onChange={e => setUntil(e.target.value)} />
         </label>
         <input type="submit" value="Submit Change" />
       </form>
     </div>
   )
 }
-
 
 export default App;
