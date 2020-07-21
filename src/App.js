@@ -8,9 +8,9 @@ class App extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      appID: appID || "932LAAGOT3",
-      API_KEY: API_KEY || "API_KEY",
-      indexName: indexName || "atis-prods",
+      appID: localStorage.getItem('rules_app_id') || appID || "appID",
+      API_KEY: localStorage.getItem('rules_api_key') || API_KEY || "API_KEY",
+      indexName: localStorage.getItem('rules_index_name') || indexName || "atis-prods",
       query: "",
       rules: [],
       rule: ""
@@ -61,6 +61,9 @@ class App extends Component {
    
   setRule(rule) {
     this.setState({ rule: rule, rules: [rule] });
+    localStorage.setItem('rules_app_id', this.state.appID)
+    localStorage.setItem('rules_api_key', this.state.API_KEY)
+    localStorage.setItem('rules_index_name', this.state.indexName)
   }
   
   handleSubmit(e) {
@@ -101,7 +104,6 @@ class App extends Component {
     }
   }
   _renderValidity(rule) {
-    console.log(rule)
     if (rule.validity) {
       return (<div><div><b>Active From:</b> {moment.unix(rule.validity[0].from).format('llll')}</div><div> <b>Until:</b> {moment.unix(rule.validity[0].until).format('llll')}</div></div>)
     } else {
